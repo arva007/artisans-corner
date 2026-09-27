@@ -1,0 +1,33 @@
+{
+  "name": "artisan-corner",
+  "version": "1.0.0",
+  "description": "Artisan's Corner - Multi-vendor marketplace for handcrafted and artisanal goods",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "start": "npm --prefix server start",
+    "server": "npm --prefix server run dev",
+    "server:start": "npm --prefix server start",
+    "client": "npm --prefix client run dev",
+    "client:build": "npm --prefix client run build",
+    "seed": "npm --prefix server run seed",
+    "test:backend": "npm --prefix server test",
+    "install:all": "npm install && npm --prefix server install && npm --prefix client install"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "ecommerce",
+    "multi-vendor",
+    "marketplace",
+    "artisan",
+    "handmade",
+    "mern",
+    "stripe"
+  ],
+  "author": "Artisan's Corner Team",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
