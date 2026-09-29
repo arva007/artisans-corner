@@ -31,7 +31,15 @@ const LoginPage = () => {
   useEffect(() => {
     dispatch(clearError());
     if (user) {
-      navigate(redirect);
+      if (redirect && redirect !== '/') {
+        navigate(redirect);
+      } else if (user.role === 'admin') {
+        navigate('/admin');
+      } else if (user.role === 'vendor') {
+        navigate('/vendor/dashboard');
+      } else {
+        navigate('/');
+      }
     }
   }, [user, navigate, redirect, dispatch]);
 
@@ -150,7 +158,7 @@ const LoginPage = () => {
               type="email"
               id="email-input"
               className="form-control"
-              placeholder="you@artisancorner.com"
+              placeholder="you@example.com"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}

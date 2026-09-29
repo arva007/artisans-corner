@@ -1,13 +1,14 @@
+process.env.NODE_ENV = 'test';
 const http = require('http');
 const dotenv = require('dotenv');
+dotenv.config({ path: __dirname + '/../.env' });
+process.env.NODE_ENV = 'test';
 const { connectDB, disconnectDB } = require('../config/db');
 const { app } = require('../server');
 const User = require('../models/User');
 const Vendor = require('../models/Vendor');
 const Product = require('../models/Product');
 const Order = require('../models/Order');
-
-dotenv.config({ path: __dirname + '/../.env' });
 
 let testServer;
 let port = 5055;
@@ -109,6 +110,55 @@ const runTests = async () => {
       password: 'WrongPassword!',
     });
     assert(badLogin.status === 401, 'Invalid credentials rejected with 401');
+
+    // 4b. Auth: Test Seeded Demo Accounts (Admin, Vendor, Buyer)
+    const demoAdminLogin = await request('POST', '/api/auth/login', {
+      email: 'admin@artisancorner.com',
+      password: 'Admin123!',
+    });
+    assert(demoAdminLogin.status === 200 && demoAdminLogin.body.user.role === 'admin', 'Seeded Demo Admin login succeeds');
+
+    const demoVendorLogin = await request('POST', '/api/auth/login', {
+      email: 'vendor@artisancorner.com',
+      password: 'Vendor123!',
+    });
+    assert(demoVendorLogin.status === 200 && demoVendorLogin.body.user.role === 'vendor', 'Seeded Demo Vendor login succeeds');
+
+    const demoBuyerLogin = await request('POST', '/api/auth/login', {
+      email: 'buyer@artisancorner.com',
+      password: 'Buyer123!',
+    });
+    assert(demoBuyerLogin.status === 200 && demoBuyerLogin.body.user.role === 'buyer', 'Seeded Demo Buyer login succeeds');
+
+    // 4c. Auth: Test Custom Gmail User Registration and Login Flow
+    await User.deleteOne({ email: 'evaluator.gmail@gmail.com' });
+    const gmailReg = await request('POST', '/api/auth/register', {
+      name: 'Evaluator Gmail',
+      email: 'evaluator.gmail@gmail.com',
+      password: 'MyGmailPassword123!',
+      role: 'buyer',
+    });
+    assert(gmailReg.status === 201 && gmailReg.body.token, 'Normal Gmail registration succeeds with 201');
+
+    const gmailLogin = await request('POST', '/api/auth/login', {
+      email: 'evaluator.gmail@gmail.com',
+      password: 'MyGmailPassword123!',
+    });
+    assert(gmailLogin.status === 200 && gmailLogin.body.token, 'Normal Gmail login succeeds with 200');
+
+    const gmailBadLogin = await request('POST', '/api/auth/login', {
+      email: 'evaluator.gmail@gmail.com',
+      password: 'WrongPassword!',
+    });
+    assert(gmailBadLogin.status === 401, 'Invalid password for registered Gmail rejected with 401');
+    await User.deleteOne({ email: 'evaluator.gmail@gmail.com' });
+
+    // 4d. Auth: Test Unregistered Gmail Login Rejection
+    const unregisteredLogin = await request('POST', '/api/auth/login', {
+      email: 'unregistered.evaluator.test@gmail.com',
+      password: 'RandomPassword123!',
+    });
+    assert(unregisteredLogin.status === 401, 'Unregistered Gmail login rejected with 401');
 
     // 5. Auth: Get Current User (/api/auth/me)
     const meRes = await request('GET', '/api/auth/me', null, buyerToken);

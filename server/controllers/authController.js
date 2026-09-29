@@ -13,7 +13,14 @@ const register = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Please provide all required fields' });
     }
 
-    const userExists = await User.findOne({ email });
+    if (password.length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long' });
+    }
+
+    const normalizedEmail = (email || '').toLowerCase().trim();
+    const normalizedName = (name || '').trim();
+
+    const userExists = await User.findOne({ email: normalizedEmail });
     if (userExists) {
       return res.status(400).json({ success: false, message: 'User already exists with this email' });
     }
@@ -22,15 +29,30 @@ const register = async (req, res, next) => {
     const assignedRole = role === 'vendor' ? 'vendor' : 'buyer';
 
     const user = await User.create({
-      name,
-      email,
+      name: normalizedName,
+      email: normalizedEmail,
       password,
       role: assignedRole,
     });
 
+    let vendor = null;
+    if (assignedRole === 'vendor') {
+      try {
+        vendor = await Vendor.create({
+          owner: user._id,
+          storeName: `${normalizedName}'s Studio`,
+          description: `Handcrafted artisanal goods and creations by ${normalizedName}.`,
+          logo: 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?auto=format&fit=crop&w=300&q=80',
+          banner: 'https://images.unsplash.com/photo-1610701596007-11502861dcfa?auto=format&fit=crop&w=1200&q=80',
+        });
+      } catch (vErr) {
+        console.warn('[Register] Vendor studio init notice:', vErr.message);
+      }
+    }
+
     const token = generateToken(user._id);
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       token,
       user: {
@@ -40,9 +62,21 @@ const register = async (req, res, next) => {
         role: user.role,
         profileImage: user.profileImage,
         bio: user.bio,
+        vendor: vendor
+          ? {
+              _id: vendor._id,
+              storeName: vendor.storeName,
+              logo: vendor.logo,
+              description: vendor.description,
+            }
+          : null,
       },
     });
   } catch (err) {
+    if (err.name === 'ValidationError') {
+      const message = Object.values(err.errors).map((e) => e.message).join(', ');
+      return res.status(400).json({ success: false, message });
+    }
     next(err);
   }
 };
@@ -58,11 +92,15 @@ const login = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Please provide email and password' });
     }
 
-    const user = await User.findOne({ email }).select('+password');
+    const normalizedEmail = (email || '').toLowerCase().trim();
+    const user = await User.findOne({ email: normalizedEmail }).select('+password');
+
+    // Reject unregistered email
     if (!user) {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
+    // Secure password verification
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
@@ -76,7 +114,7 @@ const login = async (req, res, next) => {
 
     const token = generateToken(user._id);
 
-    res.json({
+    return res.status(200).json({
       success: true,
       token,
       user: {

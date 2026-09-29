@@ -23,7 +23,7 @@ export const loginUser = createAsyncThunk(
       return sessionData;
     } catch (err) {
       return rejectWithValue(
-        err.response?.data?.message || 'Login failed. Please check credentials.'
+        err.response?.data?.message || 'Invalid credentials'
       );
     }
   }

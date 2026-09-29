@@ -282,8 +282,12 @@ const seedData = async (exitOnComplete = true) => {
 
 const autoSeedIfEmpty = async () => {
   try {
-    const count = await Product.countDocuments();
-    if (count === 0) {
+    const [userCount, productCount] = await Promise.all([
+      User.countDocuments(),
+      Product.countDocuments(),
+    ]);
+    // Only auto-seed when the database is completely empty (fresh deployment)
+    if (userCount === 0 && productCount === 0) {
       console.log('[Database] Empty database detected. Auto-populating artisan demo catalog & accounts...');
       await seedData(false);
     }

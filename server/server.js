@@ -82,11 +82,13 @@ app.use(
 
       const normalizedOrigin = origin.replace(/\/+$/, '');
 
-      // Allow if wildcard configured or origin is explicitly in allowed list
+      // Allow if wildcard configured, origin is in allowed list, or matches Render/Vercel domains
       if (
         clientUrls.includes('*') ||
         allowedOrigins.includes(origin) ||
-        allowedOrigins.includes(normalizedOrigin)
+        allowedOrigins.includes(normalizedOrigin) ||
+        origin.endsWith('.onrender.com') ||
+        origin.endsWith('.vercel.app')
       ) {
         return callback(null, true);
       }
